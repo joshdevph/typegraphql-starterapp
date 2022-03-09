@@ -1,5 +1,5 @@
 import { Arg, Query, Mutation, Resolver, InputType, Field } from "type-graphql";
-import { Accounts } from "../entity/User";
+import { Accounts } from "../entity/user.entity";
 
 @InputType()
 class UserArgs{
