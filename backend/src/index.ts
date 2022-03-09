@@ -1,5 +1,5 @@
 import "reflect-metadata"
-import express, {Express} from 'express'
+import express, {Express, Request, Response} from 'express'
 import { ApolloServer } from 'apollo-server-express'
 import { buildSchema } from "type-graphql";
 import { UserResolver } from './resolvers/user'
@@ -40,6 +40,7 @@ const main =async () => {
     //Initialize ApolloServer Middleware
     apolloServer.applyMiddleware({app})
     app.listen(PORT, () => console.log(`Server is Running on Port:${PORT}`))
+    app.get('/', (req: Request, res: Response) => res.send('Test'))
 }
 
 //Start Main App
