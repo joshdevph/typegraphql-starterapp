@@ -1,45 +1,67 @@
 import "reflect-metadata"
+require('dotenv').config()
 import express, {Express, Request, Response} from 'express'
 import { ApolloServer } from 'apollo-server-express'
 import { buildSchema } from "type-graphql";
-import { UserResolver } from './resolvers/user'
 import { ApolloServerPluginLandingPageGraphQLPlayground } from "apollo-server-core";
 import { createConnection } from "typeorm";
+import cors from 'cors'
+import {UserResolver} from "./resolvers/user";
+import cookieParser from "cookie-parser";
+import http from "http";
+
 const main =async () => {
+
+    //Initialize Express App
+    const app : Express = express()
+
+    // ! Middleware express
+    app.use(cookieParser());
+
+    // !Create HTTP Server
+    const httpServer = http.createServer(app);
+
     //Create Connection to Database
-    const connection = await createConnection({
-        type: "postgres",
-        database: "chatapp",
-        entities: [],
-        logging: true,
-        synchronize: true,
-        username: "root", // --- to change as ENV
-        password: "root", // --- to change as ENV
-        port: 5432
-    })
+    const db = await createConnection()
 
     //Create instance or Apollo Server
     const apolloServer = new ApolloServer({
         schema : await buildSchema({
-            resolvers: [UserResolver],
+            resolvers: [
+                UserResolver
+            ],
             validate: false
         }),
+        introspection: true,
         //Add Plugin for GraphQL Playground
-        plugins: [ApolloServerPluginLandingPageGraphQLPlayground]
+        plugins: [ApolloServerPluginLandingPageGraphQLPlayground],
+        context:async ({req, res, connection}: any) => {
+            if (req){
+                return{
+                    db,
+                    res,
+                    session: req.session,
+                    secret: process.env.APP_SECRET
+                }
+            }
+        }
     })
 
     //Start Apollo Server
     await apolloServer.start()
 
-    //Initialize Express App
-    const app : Express = express()
-
-    //Create Port to Listen
-    const PORT = 8080
-
     //Initialize ApolloServer Middleware
-    apolloServer.applyMiddleware({app})
-    app.listen(PORT, () => console.log(`Server is Running on Port:${PORT}`))
+    apolloServer.applyMiddleware({app, path:"/graphql", cors: false})
+
+    // ! CORS 
+    app.use(
+        cors({
+            origin: ["http://localhost:3000"],
+            credentials: true,
+        })
+    );
+
+    httpServer.listen(process.env.PORT, () => console.log(`Server is Running on PORT:${process.env.PORT}`))
     app.get('/', (req: Request, res: Response) => res.send('Test'))
 }
 
